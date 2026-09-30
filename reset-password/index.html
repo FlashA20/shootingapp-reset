@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Reset your password | Shooting App</title>
+    <style>
+      :root {
+        color: #1a202c;
+        background: #edf4f1;
+        font-family: Georgia, "Times New Roman", serif;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        align-items: center;
+        background: linear-gradient(135deg, #edf4f1, #f8f3e8);
+        display: flex;
+        justify-content: center;
+        margin: 0;
+        min-height: 100vh;
+        padding: 24px;
+      }
+
+      main {
+        background: #fffdf8;
+        border: 1px solid #b9c9c0;
+        box-shadow: 10px 10px 0 #2f6d62;
+        max-width: 460px;
+        padding: 36px;
+        width: 100%;
+      }
+
+      h1 { font-size: 2rem; margin: 0 0 10px; }
+      p { line-height: 1.5; }
+      form { display: grid; gap: 18px; margin-top: 28px; }
+      label { display: grid; font-weight: bold; gap: 7px; }
+      input {
+        border: 1px solid #65766e;
+        border-radius: 2px;
+        font: inherit;
+        padding: 12px;
+      }
+      button {
+        background: #2f6d62;
+        border: 0;
+        color: #fff;
+        cursor: pointer;
+        font: inherit;
+        font-weight: bold;
+        padding: 13px 16px;
+      }
+      button:disabled { cursor: wait; opacity: 0.7; }
+      #message { min-height: 1.5em; }
+      .error { color: #a32626; }
+      .success { color: #1c6b48; }
+      @media (max-width: 480px) {
+        main { box-shadow: 6px 6px 0 #2f6d62; padding: 26px; }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Choose a new password</h1>
+      <p>Your new password must contain at least 8 characters.</p>
+      <form id="reset-password-form">
+        <label>
+          New password
+          <input id="password" name="password" type="password" minlength="8" autocomplete="new-password" required />
+        </label>
+        <label>
+          Confirm new password
+          <input id="confirm-password" name="confirmPassword" type="password" minlength="8" autocomplete="new-password" required />
+        </label>
+        <button type="submit">Reset password</button>
+        <p id="message" aria-live="polite"></p>
+      </form>
+    </main>
+    <script src="config.js"></script>
+    <script>
+      const form = document.getElementById("reset-password-form");
+      const passwordInput = document.getElementById("password");
+      const confirmationInput = document.getElementById("confirm-password");
+      const button = form.querySelector("button");
+      const message = document.getElementById("message");
+      const code = new URLSearchParams(location.search).get("code");
+      const apiBaseUrl = window.RESET_PASSWORD_CONFIG?.apiBaseUrl?.replace(/\/$/, "");
+
+      const showMessage = (text, type) => {
+        message.textContent = text;
+        message.className = type;
+      };
+
+      const request = async (path, body) => {
+        const response = await fetch(`${apiBaseUrl}${path}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(result.message || "Your reset link is invalid or has expired.");
+        return result;
+      };
+
+      if (!code || !apiBaseUrl || apiBaseUrl.includes("your-api.example.com")) {
+        showMessage("This reset page has not been configured correctly.", "error");
+        button.disabled = true;
+      }
+
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        if (passwordInput.value !== confirmationInput.value) {
+          showMessage("The passwords do not match.", "error");
+          return;
+        }
+
+        button.disabled = true;
+        showMessage("", "");
+        try {
+          const { resetPasswordToken } = await request("/auth/reset-password-code", { code });
+          await request("/auth/reset-password", {
+            password: passwordInput.value,
+            resetPasswordToken,
+          });
+          form.reset();
+          showMessage("Your password has been reset. You can now sign in.", "success");
+        } catch (error) {
+          showMessage(error.message, "error");
+        } finally {
+          button.disabled = false;
+        }
+      });
+    </script>
+  </body>
+</html>
