@@ -1,4 +1,4 @@
 window.RESET_PASSWORD_CONFIG = {
   // Replace this with the public HTTPS address of the deployed Express API.
-  apiBaseUrl:  "  https://accepting-quiet-hosting-prayers.trycloudflare.com",
+  apiBaseUrl:  "https://profit-better-psychology-visiting.trycloudflare.com",
 };
